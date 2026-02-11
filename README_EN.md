@@ -409,11 +409,27 @@ Pull Requests and Issues are welcome!
 4. Push branch: `git push origin feature/xxx`
 5. Create Pull Request
 
+#### Commit Message Prefixes
+
+| Prefix | Meaning | Example |
+| :--------- | :---------------- | :------------------------- |
+| `feat` | New feature | `feat: add user login feature` |
+| `fix` | Bug fix | `fix: fix homepage loading slow issue` |
+| `docs` | Documentation changes | `docs: update API documentation` |
+| `style` | Code formatting (no logic change) | `style: unify indentation to 2 spaces` |
+| `refactor` | Refactoring (no bug fix or feature) | `refactor: optimize order module structure` |
+| `perf` | Performance optimization | `perf: reduce first screen load time` |
+| `test` | Add or modify tests | `test: add user module unit tests` |
+| `chore` | Build/tools/dependencies chores | `chore: upgrade webpack to v5` |
+| `ci` | CI/CD configuration changes | `ci: modify GitHub Actions config` |
+| `build` | Build system or external dependency changes | `build: add docker support` |
+| `revert` | Revert commit | `revert: revert feat: add payment feature` |
+
 ### Code Standards
 
-- 📝 Use comments
+- 📝 Use English comments
 - 🎯 Add type annotations to functions
-- ⏱️ Record start/end time
+- ⏱️ Record start/end timestamps
 - 🎨 Use emoji markers in logs
 - 🚪 Return 0 (success) or 1 (failure)
 

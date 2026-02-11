@@ -409,6 +409,22 @@ python manage.py tasklogs
 4. 推送分支：`git push origin feature/xxx`
 5. 创建 Pull Request
 
+#### 常用提交信息参考
+
+| 前缀         | 含义                | 示例                         |
+| :--------- | :---------------- | :------------------------- |
+| `feat`     | 新功能（feature）      | `feat 添加用户登录功能`           |
+| `fix`      | 修复 bug            | `fix 修复首页加载缓慢问题`          |
+| `docs`     | 文档变更              | `docs 更新 API 文档`          |
+| `style`    | 代码格式调整（不影响代码逻辑）   | `style 统一缩进为2空格`          |
+| `refactor` | 重构（既不修复bug也不添加功能） | `refactor 优化订单模块代码结构`     |
+| `perf`     | 性能优化              | `perf 减少首屏加载时间`           |
+| `test`     | 添加或修改测试           | `test 增加用户模块单元测试`         |
+| `chore`    | 构建/工具/依赖等杂项       | `chore 升级 webpack 到 v5`   |
+| `ci`       | CI/CD 配置变更        | `ci 修改 GitHub Actions 配置` |
+| `build`    | 构建系统或外部依赖变更       | `build 添加 docker 支持`      |
+| `revert`   | 回滚提交              | `revert 回滚 feat: 添加支付功能`  |
+
 ### 代码规范
 
 - 📝 使用中文注释
