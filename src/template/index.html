@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiteCron 管理面板</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <!-- <span class="logo-icon">⏰</span> -->
+                    <h1>LiteCron</h1>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="task-count">-</span>
+                        <span class="stat-label">任务</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <button class="btn btn-secondary" id="btn-logs">
+                    <span class="btn-icon">📄</span>
+                    查看日志
+                </button>
+                <button class="btn btn-secondary" id="btn-clean">
+                    <span class="btn-icon">🧹</span>
+                    清理日志
+                </button>
+                <button class="btn btn-refresh" id="btn-refresh" title="刷新">
+                    <span class="btn-icon">♻️</span>
+                </button>
+            </div>
+
+            <!-- 任务列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">📋</span>
+                        定时任务
+                    </h2>
+                    <span class="badge" id="enabled-count">0 个启用</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="data-table" id="task-table">
+                            <thead>
+                                <tr>
+                                    <th>状态</th>
+                                    <th>任务名称</th>
+                                    <th>调度规则</th>
+                                    <th>描述</th>
+                                    <th>下次执行</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="task-list">
+                                <tr class="loading-row">
+                                    <td colspan="6" class="loading-cell">
+                                        <div class="spinner"></div>
+                                        <span>加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>LiteCron Web 管理界面 · <span id="update-time"></span></p>
+        </footer>
+    </div>
+
+    <!-- 日志查看模态框 -->
+    <div class="modal" id="logs-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <span class="title-icon">📄</span>
+                    日志文件
+                </h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="logs-layout">
+                    <div class="logs-sidebar">
+                        <h4 class="sidebar-title">文件列表</h4>
+                        <ul class="file-list" id="file-list">
+                            <li class="file-item loading">加载中...</li>
+                        </ul>
+                    </div>
+                    <div class="logs-content">
+                        <div class="logs-toolbar">
+                            <span class="logs-filename" id="current-filename">选择一个日志文件</span>
+                            <button class="btn btn-sm" id="btn-download" disabled>下载</button>
+                        </div>
+                        <pre class="logs-viewer" id="logs-viewer"><code>点击左侧文件查看内容</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务执行模态框 -->
+    <div class="modal" id="run-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <span class="title-icon">🚀</span>
+                    执行任务
+                </h3>
+                <button class="modal-close" id="run-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="run-info">
+                    <span class="run-task-name" id="run-task-name"></span>
+                    <span class="run-status" id="run-status">准备执行...</span>
+                </div>
+                <div class="terminal" id="terminal">
+                    <div class="terminal-line system">等待开始...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# Docker 构建忽略文件
+# 减少构建上下文大小，避免不必要的重建
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# 日志和数据（运行时生成）
+logs/
+data/
+*.log
+
+# Docker
+Dockerfile
+compose.yml
+compose.example.yml
+.dockerignore
+
+# 其他
+README.md
+*.md
+AGENTS.md
+.env
+.env.example

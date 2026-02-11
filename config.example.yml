@@ -1,0 +1,114 @@
+# 定时任务配置
+# 时间格式: minute hour day-of-month month day-of-week
+# 特殊值: * 表示任意值
+# 示例: "*/5 * * * *" 表示每5分钟执行一次
+
+tasks:
+  - name: "iKuuu"
+    schedule: "0 2 * * *"
+    script: "tasks/ikuuu.py"
+    description: "iKuuu签到"
+    enabled: true
+    env:
+      MY_EMAIL: "your_email"
+      MY_PWD: "your_password"
+
+  - name: "PTTime"
+    schedule: "0 3 * * *"
+    script: "tasks/pttime.py"
+    description: "PTTime签到"
+    enabled: true
+    env:
+      PTTIME_COOKIE: "your_cookie_here"
+      PTTIME_UID: "your_uid_here"
+      # PTTIME_PROXY: "optional_proxy_here"  # 可选
+
+  - name: "SMZDM"
+    schedule: "0 4 * * *"
+    script: "tasks/smzdm.py"
+    description: "什么值得买签到"
+    enabled: true
+    env:
+      SMZDM_COOKIE: "your_smzdm_cookie_here"
+
+  - name: "TieBa"
+    schedule: "0 5 * * *"
+    script: "tasks/tieba.py"
+    description: "百度贴吧签到"
+    enabled: true
+    env:
+      TIEBA_COOKIE: "BDUSS=your_bduss_here; other_cookie=xxx"
+
+  - name: "FnClub"
+    schedule: "0 6 * * *"
+    script: "tasks/fnclub.py"
+    description: "飞牛Nas论坛签到"
+    enabled: true
+    env:
+      FNNAS_COOKIE: "your_cookie_here"
+
+  - name: "AliyunPan"
+    schedule: "0 7 * * *"
+    script: "tasks/aliyunpan.py"
+    description: "阿里云盘签到"
+    enabled: true
+    env:
+      ALIYUN_REFRESH_TOKEN: "your_refresh_token_here"
+
+  - name: "Bilibili"
+    schedule: "0 8 * * *"
+    script: "tasks/bilibili.py"
+    description: "哔哩哔哩签到"
+    enabled: true
+    env:
+      BILIBILI_COOKIE: "SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx"
+      # COIN_NUM: "5"                    # 每日投币数量，默认5
+      # COIN_TYPE: "1"                   # 投币类型: 1=关注用户视频，其他=随机视频，默认1
+      # SILVER2COIN: "false"             # 是否兑换银瓜子为硬币: true/false，默认false
+      # RECEIVE_VIP_PRIVILEGE: "false"   # 是否领取大会员权益: true/false，默认false（非大会员不生效）
+
+  - name: "V2EX"
+    schedule: "0 9 * * *"
+    script: "tasks/v2ex.py"
+    description: "V2EX论坛签到"
+    enabled: true
+    env:
+      V2EX_COOKIE: "your_v2ex_cookie_here"
+      # V2EX_PROXY: "http://127.0.0.1:7890"  # 可选，代理服务器地址
+      # V2EX_SSL_VERIFY: "false"             # 可选，是否验证SSL证书，默认false
+
+# 通知配置
+notify:
+  # 任务失败时发送通知
+  on_failure: true
+  # 任务成功时也发送通知
+  on_success: false
+
+  # Webhook 通知配置
+  # 通知时会自动将 title 和 content 组合成请求体:
+  # - application/json: {"title": "xxx", "content": "xxx"}
+  # - application/x-www-form-urlencoded: title=xxx&content=xxx
+  # - text/plain: xxx
+  webhook:
+    url: ""                    # Webhook URL
+    method: "POST"             # HTTP 方法: GET, POST, PUT, PATCH
+    content_type: "application/json"  # Content-Type: application/json, application/x-www-form-urlencoded, text/plain
+    headers: |                 # 请求头，每行一个 key: value 格式
+      # Authorization: Bearer your_token_here
+      # X-API-Key: your_api_key_here
+
+  # NTFY 通知配置
+  ntfy:
+    url: ""                    # NTFY 服务器地址，如 https://ntfy.sh
+    topic: ""                  # NTFY Topic 名称
+    priority: "3"              # 优先级: 1-5，1=最低，5=最高，默认3
+    token: ""                  # 访问令牌（可选）
+    username: ""               # 用户名（可选，与密码一起使用）
+    password: ""               # 密码（可选）
+    actions: ""                # 自定义动作（可选）
+    headers: |                 # 自定义请求头，每行一个 key: value 格式（可选）
+      # X-Custom-Header: value
+
+# WebUI 配置
+webui:
+  debug: false                 # 是否启用 Flask 调试模式（true/false，默认false）

@@ -1,0 +1,4 @@
+config.yml
+compose.yml
+logs
+__pycache__
