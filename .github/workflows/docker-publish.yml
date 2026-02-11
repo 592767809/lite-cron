@@ -1,0 +1,111 @@
+name: Build and Push Docker Image to GHCR
+
+on:
+  # 当 main 分支有新的 tag 推送时触发
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  # 当发布 release 时触发
+  release:
+    types: [published]
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '镜像标签 (默认: latest)'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史以便检查分支
+
+      - name: 验证 tag 来源
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "🏷️ Tag: $TAG_NAME"
+
+          # 检查 tag 是否在 main 分支上
+          git fetch origin main
+          if git branch -a --contains $TAG_NAME | grep -q "remotes/origin/main"; then
+            echo "✅ Tag 来自 main 分支，继续构建"
+          else
+            echo "⚠️ 警告: Tag 可能不是来自 main 分支"
+            echo "包含此 tag 的分支:"
+            git branch -a --contains $TAG_NAME
+          fi
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 提取元数据
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 构建并推送镜像
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 生成工件证明
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: 输出镜像信息
+        run: |
+          echo "✅ 镜像构建并推送成功！"
+          echo ""
+          echo "镜像地址: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "标签: ${{ steps.meta.outputs.tags }}"
+          echo "Digest: ${{ steps.push.outputs.digest }}"
+          echo ""
+          echo "拉取命令:"
+          echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
