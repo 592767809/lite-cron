@@ -1,10 +1,8 @@
 name: Build and Push Docker Image to GHCR
 
 on:
-  # 当 main 分支有新的 tag 推送时触发
+  # 当有 v* 标签推送时触发（仅在创建 tag 时，分支提交不触发）
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   # 当发布 release 时触发
@@ -66,19 +64,37 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 调试事件信息
+        run: |
+          echo "🔍 事件类型: ${{ github.event_name }}"
+          echo "🔍 Ref: ${{ github.ref }}"
+          echo "🔍 Ref 类型: ${{ github.ref_type }}"
+          echo "🔍 Release Tag: ${{ github.event.release.tag_name || 'N/A' }}"
+
       - name: 提取元数据
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # 生成标签：tag名称 + 语义化版本 + latest
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
+            # 1. Tag 名称 (如 v1.0.0)
+            type=ref,event=tag
+            # 2. 语义化版本标签 (v1.0.0 -> 1.0.0)
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix=,suffix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            # 3. 始终生成 latest
+            type=raw,value=latest,enable=true
+          # 禁用默认的 sha 和 branch 标签
+          flavor: |
+            latest=auto
+
+      - name: 显示生成的标签
+        run: |
+          echo "🏷️ 生成的标签:"
+          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'
+          echo ""
+          echo "📋 生成的标签 (JSON):"
+          echo '${{ steps.meta.outputs.json }}' | jq .
 
       - name: 构建并推送镜像
         id: push
@@ -92,12 +108,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 生成工件证明
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+      # 注意：暂时禁用工件证明，因为它会推送额外的 sha256 标签到 registry
+      # 如需启用，请确保配置正确或使用 GitHub 的默认证明存储
+      # - name: 生成工件证明
+      #   uses: actions/attest-build-provenance@v1
+      #   with:
+      #     subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: false
 
       - name: 输出镜像信息
         run: |
