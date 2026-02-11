@@ -1,10 +1,12 @@
 name: Build and Push Docker Image to GHCR
 
 on:
-  # 当有 v* 标签推送时触发（仅在创建 tag 时，分支提交不触发）
-  push:
-    tags:
-      - 'v*'
+  # 当有数字版本标签推送时触发（支持 v1.0.0、1.0.0、1.0、1 等格式）
+  # push:
+  #   tags:
+  #     - '[0-9]+.[0-9]+.[0-9]+*'  # 1.0.0, v1.0.0-alpha
+  #     - '[0-9]+.[0-9]+'           # 1.0, v1.0
+  #     - '[0-9]+'                  # 1, v1
   # 当发布 release 时触发
   release:
     types: [published]
@@ -17,8 +19,12 @@ on:
         default: 'latest'
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # GitHub Container Registry
+  GHCR_REGISTRY: ghcr.io
+  GHCR_IMAGE_NAME: ${{ github.repository }}
+  # Docker Hub
+  DOCKERHUB_REGISTRY: docker.io
+  DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/lite-cron
 
 jobs:
   build-and-push:
@@ -26,8 +32,8 @@ jobs:
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
+      # attestations: write
+      # id-token: write
 
     steps:
       - name: 检出代码
@@ -60,9 +66,15 @@ jobs:
       - name: 登录到 GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 登录到 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: 调试事件信息
         run: |
@@ -71,42 +83,72 @@ jobs:
           echo "🔍 Ref 类型: ${{ github.ref_type }}"
           echo "🔍 Release Tag: ${{ github.event.release.tag_name || 'N/A' }}"
 
-      - name: 提取元数据
-        id: meta
+      - name: 提取 GitHub Container Registry 元数据
+        id: meta-ghcr
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # 生成标签：tag名称 + 语义化版本 + latest
+          images: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}
+          # 生成标签：tag名称 + 主版本 + latest
+          # 支持 1.0、1.0.0、v1.0 等格式
           tags: |
-            # 1. Tag 名称 (如 v1.0.0)
+            # 1. Tag 名称 (原始 tag，如 1.0)
             type=ref,event=tag
-            # 2. 语义化版本标签 (v1.0.0 -> 1.0.0)
-            type=semver,pattern={{version}}
+            # 2. 提取主版本号 (1.0 -> 1, 1.0.0 -> 1)
+            type=match,event=tag,pattern=^v?(\d+),group=1
             # 3. 始终生成 latest
             type=raw,value=latest,enable=true
           # 禁用默认的 sha 和 branch 标签
           flavor: |
             latest=auto
 
+      - name: 提取 Docker Hub 元数据
+        id: meta-dockerhub
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_IMAGE_NAME }}
+          # 生成相同的标签规则
+          tags: |
+            type=ref,event=tag
+            type=match,event=tag,pattern=^v?(\d+),group=1
+            type=raw,value=latest,enable=true
+          flavor: |
+            latest=auto
+
       - name: 显示生成的标签
         run: |
-          echo "🏷️ 生成的标签:"
-          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'
+          echo "🏷️ GitHub Container Registry 标签:"
+          echo "${{ steps.meta-ghcr.outputs.tags }}" | tr ',' '\n'
           echo ""
-          echo "📋 生成的标签 (JSON):"
-          echo '${{ steps.meta.outputs.json }}' | jq .
+          echo "🏷️ Docker Hub 标签:"
+          echo "${{ steps.meta-dockerhub.outputs.tags }}" | tr ',' '\n'
 
-      - name: 构建并推送镜像
-        id: push
+      - name: 构建并推送到 GitHub Container Registry
+        id: push-ghcr
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-ghcr.outputs.tags }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+
+      - name: 构建并推送到 Docker Hub
+        id: push-dockerhub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-dockerhub.outputs.tags }}
+          labels: ${{ steps.meta-dockerhub.outputs.labels }}
+          cache-from: type=gha
+          provenance: false
+          sbom: false
 
       # 注意：暂时禁用工件证明，因为它会推送额外的 sha256 标签到 registry
       # 如需启用，请确保配置正确或使用 GitHub 的默认证明存储
@@ -121,9 +163,16 @@ jobs:
         run: |
           echo "✅ 镜像构建并推送成功！"
           echo ""
-          echo "镜像地址: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "标签: ${{ steps.meta.outputs.tags }}"
-          echo "Digest: ${{ steps.push.outputs.digest }}"
+          echo "📦 GitHub Container Registry:"
+          echo "  镜像地址: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
+          echo "  标签: ${{ steps.meta-ghcr.outputs.tags }}"
+          echo "  Digest: ${{ steps.push-ghcr.outputs.digest }}"
+          echo ""
+          echo "📦 Docker Hub:"
+          echo "  镜像地址: ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_IMAGE_NAME }}"
+          echo "  标签: ${{ steps.meta-dockerhub.outputs.tags }}"
+          echo "  Digest: ${{ steps.push-dockerhub.outputs.digest }}"
           echo ""
           echo "拉取命令:"
-          echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "  docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest"
+          echo "  docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:latest"

@@ -1,0 +1,23 @@
+name: Cleanup Old GHCR Images
+
+on:
+  # 仅支持手动触发
+  workflow_dispatch:
+
+jobs:
+  delete-untagged:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete untagged images
+        uses: actions/delete-package-versions@v5
+        with:
+          # 替换为你的镜像名称（通常是仓库名，注意转为小写）
+          package-name: "lite-cron"
+          package-type: "container"
+          # 只删除没有标签的版本
+          delete-only-untagged-versions: "true"
+          # （可选）保留最近的多少个版本，防止误删刚构建完还没来得及同步的
+          min-versions-to-keep: 3
